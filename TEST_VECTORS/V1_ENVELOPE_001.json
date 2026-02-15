@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "intent_id": "intent_001",
+  "execution_id": "exec_001",
+  "tenant_id": "tenant_abc",
+  "action_type": "TRANSFER",
+  "rail": {
+    "type": "EVM",
+    "network": "sepolia",
+    "chain_id": 11155111,
+    "contract": "0x0000000000000000000000000000000000000000"
+  },
+  "actor": {
+    "caller": "0x1111111111111111111111111111111111111111",
+    "role": "ops"
+  },
+  "target": {
+    "to": "0x2222222222222222222222222222222222222222",
+    "asset": "USDC",
+    "asset_class": 1,
+    "amount": "1000000",
+    "decimals": 6
+  },
+  "constraints": {
+    "ttl": 1771088844,
+    "nonce": 7,
+    "replay_scope": "caller"
+  },
+  "policy_binding": {
+    "policy_id": "policy_default",
+    "policy_version": 1,
+    "policy_hash": "0xabc123"
+  },
+  "metadata": {
+    "created_at": 1771088544,
+    "notes": "informational only"
+  }
+}
