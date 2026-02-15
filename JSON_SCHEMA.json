@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:execution-envelope:v1:schema",
+  "title": "Execution Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "version",
+    "intent_id",
+    "execution_id",
+    "tenant_id",
+    "action_type",
+    "rail",
+    "actor",
+    "target",
+    "constraints",
+    "policy_binding",
+    "metadata"
+  ],
+
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Envelope spec version. MUST be 1."
+    },
+
+    "intent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Unique identifier for the logical intent."
+    },
+
+    "execution_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Unique identifier for this execution attempt."
+    },
+
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Organizational boundary identifier."
+    },
+
+    "action_type": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 64,
+      "pattern": "^[A-Z0-9_]+$",
+      "description": "Action type (e.g., TRANSFER, MINT, REDEEM, ADMIN_CHANGE, AUTHN, AUTHZ)."
+    },
+
+    "rail": { "$ref": "#/$defs/rail" },
+    "actor": { "$ref": "#/$defs/actor" },
+    "target": { "$ref": "#/$defs/target" },
+    "constraints": { "$ref": "#/$defs/constraints" },
+    "policy_binding": { "$ref": "#/$defs/policy_binding" },
+    "metadata": { "$ref": "#/$defs/metadata" }
+  },
+
+  "$defs": {
+    "rail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "network", "chain_id", "contract"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64,
+          "pattern": "^[A-Z0-9_]+$",
+          "description": "Rail type. Examples: EVM, BANK_RAIL, INTERNAL_ADMIN, AUTH."
+        },
+
+        "network": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Network identifier. Examples: sepolia, mainnet, ach, rtp, fednow."
+        },
+
+        "chain_id": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "EVM chain id when applicable; otherwise null."
+        },
+
+        "contract": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Contract address or identifier when applicable; otherwise null."
+        }
+      }
+    },
+
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caller", "role"],
+      "properties": {
+        "caller": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Initiating subject bound to execution (address or subject id)."
+        },
+
+        "role": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Optional actor role descriptor."
+        }
+      }
+    },
+
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["to", "asset", "asset_class", "amount", "decimals"],
+      "properties": {
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Destination identifier (address, beneficiary id, etc)."
+        },
+
+        "asset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Asset identifier. Examples: ETH, USDC, RWA:T_BILL."
+        },
+
+        "asset_class": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Optional partition key for exposure buckets (e.g., per asset class); otherwise null."
+        },
+
+        "amount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[0-9]+$",
+          "description": "Integer amount encoded as a string to avoid float ambiguity."
+        },
+
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36,
+          "description": "Decimal precision for amount interpretation."
+        }
+      }
+    },
+
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ttl", "nonce", "replay_scope"],
+      "properties": {
+        "ttl": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp (seconds). Execution MUST reject if now > ttl."
+        },
+
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Replay-prevention value. MUST be enforced as single-use in the replay_scope."
+        },
+
+        "replay_scope": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32,
+          "enum": ["caller", "tenant", "global"],
+          "description": "Boundary within which nonce uniqueness must hold."
+        }
+      }
+    },
+
+    "policy_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "policy_version", "policy_hash"],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Policy identifier."
+        },
+
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Policy version at authorization time."
+        },
+
+        "policy_hash": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 256,
+          "description": "Digest binding to a specific policy state (format implementation-defined)."
+        }
+      }
+    },
+
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["created_at"],
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp (seconds). Informational only."
+        }
+      },
+      "description": "Informational fields. Implementations SHOULD exclude metadata from exec_hash unless explicitly specified."
+    }
+  }
+}
