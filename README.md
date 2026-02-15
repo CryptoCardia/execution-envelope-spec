@@ -23,9 +23,8 @@ into a single hash-bound unit of execution.
 
 Core Principles:
 
-Deterministic Enforcement
-Execution must revert if any bound parameter deviates from the authorized state.
-
+- Deterministic Enforcement
+- Execution must revert if any bound parameter deviates from the authorized state.
 - Single-Use Authorization
 - Nonce-bound and replay-resistant by construction.
 - Time-Bound Validity
