@@ -26,14 +26,12 @@ Core Principles:
 Deterministic Enforcement
 Execution must revert if any bound parameter deviates from the authorized state.
 
-Single-Use Authorization
-Nonce-bound and replay-resistant by construction.
-
-Time-Bound Validity
-Authorizations expire deterministically via TTL.
-
-Hard Constraint Modeling
-Exposure ceilings and invariant conditions must be enforced before execution.
+- Single-Use Authorization
+- Nonce-bound and replay-resistant by construction.
+- Time-Bound Validity
+- Authorizations expire deterministically via TTL.
+- Hard Constraint Modeling
+- Exposure ceilings and invariant conditions must be enforced before execution.
 
 Rail-Agnostic Structure
 Applies to:
