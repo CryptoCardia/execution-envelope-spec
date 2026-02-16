@@ -46,7 +46,7 @@ Execution Envelope Structure
 An execution envelope is a canonical JSON object hashed with a domain separator.
 
 exec_hash = SHA256(
-  domain: "TGS:EXEC:ENV:v1",
+  domain: "EXEC:ENV:v1",
   canonicalized_envelope
 )
 
