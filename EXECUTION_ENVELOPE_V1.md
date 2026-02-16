@@ -3,7 +3,7 @@ Status
 
 Draft
 Version: 1
-Domain Separator: TGS:EXEC:ENV:v1
+Domain Separator: EXEC:ENV:v1
 
 1. Purpose
 
@@ -183,7 +183,7 @@ See CANONICALIZATION.md for exact rules.
 
 12. exec_hash Derivation
 exec_hash = SHA256(
-  domain: "TGS:EXEC:ENV:v1",
+  domain: "EXEC:ENV:v1",
   canonicalized_envelope
 )
 
