@@ -1,7 +1,6 @@
 Canonicalization Rules (Execution Envelope v1)
-Status
 
-Normative
+Status: Normative
 Applies to: Execution Envelope v1
 Version: 1
 
@@ -9,154 +8,195 @@ Version: 1
 
 The Execution Envelope MUST produce a deterministic exec_hash.
 
-Any implementation computing the hash MUST produce identical output given identical envelope data.
+Any compliant implementation computing exec_hash from identical envelope data MUST produce identical output at the byte level.
 
-This document defines canonicalization rules required prior to hashing.
+This document defines canonicalization requirements that MUST be applied prior to hashing.
 
 2. Hash Derivation Overview
-exec_hash = SHA256(
-  domain_separator || canonicalized_envelope_bytes
-)
 
+The exec_hash is computed as:
+
+exec_hash = SHA256(
+  ASCII(domain_separator) ||
+  0x00 ||
+  UTF8(JCS(binding_payload))
+)
 
 Where:
 
-- domain_separator = ASCII string "EXEC:ENV:v1"
-- canonicalized_envelope_bytes = UTF-8 encoded canonical JSON
+- domain_separator = ASCII string
+- "CryptoCardia.ExecutionEnvelope.v1"
+- 0x00 = single NUL byte
+- binding_payload = Execution Envelope with metadata removed
+- JCS() = RFC 8785 JSON Canonicalization Scheme
+- UTF8() = UTF-8 encoded canonical JSON bytes
 
 The domain separator MUST be prepended prior to hashing.
 
-3. Canonical JSON Requirements
+3. Binding Payload Requirement
 
-The envelope MUST be canonicalized according to the following rules:
+Canonicalization MUST be performed on the Binding Payload, not the full Envelope.
 
-- 3.1 Encoding
+For v1:
+
+- Binding Payload = Envelope with metadata field removed.
+- All other fields are binding and MUST be included.
+
+If metadata is included in canonicalization, the resulting hash is invalid under this specification.
+
+4. Canonical JSON Requirements (Normative)
+
+Execution Envelope v1 implementations MUST use:
+
+- RFC 8785 — JSON Canonicalization Scheme (JCS)
+
+No alternative canonicalization algorithms are permitted.
+
+4.1 Encoding
+
 - UTF-8 encoding MUST be used.
 - No BOM (Byte Order Mark) permitted.
+- The exact UTF-8 byte sequence produced by JCS MUST be hashed.
 
-3.2 Key Ordering
+4.2 Object Key Ordering
 
-All object keys MUST be sorted lexicographically by:
+- RFC 8785 defines lexicographic sorting by Unicode code point.
+- Implementations MUST NOT implement custom ordering logic.
+- Nested objects MUST be canonicalized recursively.
 
-- Unicode code point order
-- Strict ascending order
+4.3 Whitespace
 
-Nested objects MUST apply the same ordering rules recursively.
+RFC 8785 canonical JSON:
 
-3.3 Whitespace
+- Contains no indentation
+- Contains no newline characters
+- Contains no spaces after commas or colons
+- Contains no trailing whitespace
 
-Canonical JSON MUST:
-
-- Contain no trailing whitespace
-- Contain no indentation
-- Contain no newline characters
-- Contain no spaces after commas or colons
-
-Example:
-
-Valid:
+Example (valid canonical form):
 
 {"a":1,"b":2}
 
+Example (invalid):
 
-Invalid:
+{ "a": 1, "b": 2 }
 
-{
-  "a": 1,
-  "b": 2
-}
+Whitespace differences MUST produce rejection.
 
-3.4 Null Handling
+4.4 Null Handling
 
 Fields defined as nullable in the schema MUST:
 
 - Be explicitly included
-- Contain null if not populated
-- Fields MUST NOT be omitted.
+- Contain null when unpopulated
+- Nullable fields MUST NOT be omitted.
+- Omission results in a different canonical representation and MUST cause rejection.
 
-Omitting nullable fields results in a different hash and MUST be rejected.
-
-3.5 Numbers
+4.5 Numeric Rules
 
 The following numeric encoding rules apply:
 
-All integer fields MUST be encoded as base-10 integers
+Envelope Binding Fields
 
-- No leading zeros allowed
-- No scientific notation
-- No floating point values allowed in envelope-binding fields
+JSON numeric types MUST NOT be used for:
 
-Amounts MUST be string-encoded integers as defined in the schema.
+- amount
+- identifiers
+- nonces
+- policy hashes
 
-Example:
+These MUST be string-encoded if specified as strings in the schema.
+
+Integer Fields
+
+Integer fields defined as JSON numbers (e.g., ttl, nonce, policy_version) MUST:
+
+- Be base-10 integers
+- Contain no leading zeros (unless value is 0)
+- Not use scientific notation
+- Not use floating point
 
 Valid:
 
 "amount": "1000000000000000000"
-
+"ttl": 1700000000
 
 Invalid:
 
 "amount": 1e18
 "amount": 1.0
+"ttl": 01
 
-3.6 Boolean Values
+4.6 Boolean Values
 
 Boolean values MUST be lowercase:
 
 - true
 - false
 
-3.7 Deterministic Field Inclusion
+4.7 Deterministic Field Inclusion
 
-All required fields defined in JSON_SCHEMA.json MUST be present.
+- All required fields defined in JSON_SCHEMA.json MUST be present.
+- No additional properties are permitted except within metadata.
+- If unknown fields are detected outside metadata, verification MUST fail.
 
-No additional properties are permitted except within metadata.
+5. Metadata Exclusion Rule
 
-If present, metadata MUST NOT influence exec_hash unless explicitly declared by implementation.
-
-4. Metadata Exclusion Rule
-
-By default:
-
-The metadata object MUST be excluded from the canonicalized envelope used for exec_hash.
+The metadata object MUST be excluded from the Binding Payload.
 
 Rationale:
 
-Metadata is informational and SHOULD NOT affect authorization binding.
+- Metadata is informational.
+- Metadata MUST NOT affect authorization binding.
+- If an implementation chooses to bind metadata, it is non-compliant with Execution Envelope v1.
 
-If an implementation chooses to bind metadata, it MUST document that deviation.
-
-5. Domain Separator
+6. Domain Separator
 
 The domain separator prevents cross-protocol replay.
 
 Current domain separator:
 
-"EXEC:ENV:v1"
+- CryptoCardia.ExecutionEnvelope.v1
 
-Future versions MUST change the domain string.
+Future versions MUST change this string.
 
-6. Reference Canonicalization Approach
+- Domain separation MUST precede canonical JSON with a single 0x00 byte delimiter.
 
-Implementations SHOULD use:
+7. Required Hash Input Byte Layout
 
-- RFC 8785 (JSON Canonicalization Scheme), or
-- Equivalent deterministic canonicalization logic meeting the requirements above.
+The exact byte sequence hashed MUST be:
 
-Implementations MUST verify:
+ASCII("CryptoCardia.ExecutionEnvelope.v1")
+0x00
+UTF8(JCS(binding_payload))
 
-- Byte-level equality across independent implementations
-- Stable hash reproduction across platforms
+Any deviation from this layout results in non-compliance.
 
-7. Security Implications
+8. Reference Implementation Guidance
+
+Implementations MUST:
+
+- Use a compliant RFC 8785 library
+- Verify byte-level equality across independent implementations
+- Confirm stable reproduction across platforms
+
+Implementations MUST NOT:
+
+- Perform manual JSON string concatenation
+- Rely on default language-specific JSON serializers without JCS compliance
+- Normalize or coerce numeric fields beyond schema definitions
+
+9. Security Implications
 
 Improper canonicalization may result in:
 
 - Authorization mismatch
 - Replay vector expansion
 - Cross-implementation incompatibility
-
-Hash collision surface increase
+- Silent hash divergence
+- Constraint bypass
+- Increased collision surface
 
 Canonicalization MUST be deterministic and strictly enforced.
+
+Failure to enforce canonicalization invalidates all security guarantees of the Execution Envelope.
